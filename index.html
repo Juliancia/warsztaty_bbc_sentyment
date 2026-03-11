@@ -146,11 +146,11 @@ header { background:var(--white); border-bottom:2px solid var(--gray); padding:.
 .tag-human { background:rgba(255,56,23,.1); color:var(--red); }
 .tag-ai    { background:rgba(55,55,155,.1); color:var(--navy); }
 .tag-truth { background:rgba(146,64,14,.12); color:#92400e; }
-.panel-sub { color:var(--muted); font-size:.8rem; margin-bottom:1rem; line-height:1.5; }
+.panel-sub { color:var(--muted); font-size:.9rem; margin-bottom:1rem; line-height:1.5; }
 
-.pv-word-container { line-height:2.9; font-size:1.05rem; color:var(--text); padding:.25rem 0; }
-.pv-word { display:inline-block; margin:3px 3px; padding:.28rem .52rem; border-radius:6px; font-weight:500; position:relative; border:1.5px solid transparent; }
-.pv-word .pct-label { font-size:.62rem; font-weight:800; position:absolute; top:-15px; left:50%; transform:translateX(-50%); white-space:nowrap; color:var(--muted); pointer-events:none; }
+.pv-word-container { line-height:3.2; font-size:1.25rem; color:var(--text); padding:.25rem 0; }
+.pv-word { display:inline-block; margin:4px 4px; padding:.35rem .65rem; border-radius:6px; font-weight:500; position:relative; border:1.5px solid transparent; }
+.pv-word .pct-label { font-size:.72rem; font-weight:800; position:absolute; top:-17px; left:50%; transform:translateX(-50%); white-space:nowrap; color:var(--muted); pointer-events:none; }
 .pv-word.human-only { background:rgba(255,56,23,.18); border-color:rgba(255,56,23,.5); color:#b91c1c; }
 .pv-word.ai-only    { background:rgba(55,55,155,.07); border-color:rgba(55,55,155,.35); color:var(--navy); border-style:dashed; }
 .pv-word.both       { background:rgba(34,197,94,.22); border-color:rgba(34,197,94,.75); color:#15803d; font-weight:700; }
@@ -168,8 +168,8 @@ header { background:var(--white); border-bottom:2px solid var(--gray); padding:.
 .sentiment-comparison h3 { color:var(--navy); font-size:1rem; font-weight:700; margin-bottom:1.1rem; }
 .sc-grid { display:grid; grid-template-columns:1.4fr 1px 1fr 1px 1fr; gap:1rem; align-items:start; }
 .sc-divider { background:var(--gray); width:1px; align-self:stretch; margin:0 .25rem; }
-.sc-col-label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); margin-bottom:.6rem; }
-.sc-badge { display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.65rem .75rem; border-radius:10px; font-size:.9rem; font-weight:800; min-height:44px; }
+.sc-col-label { font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); margin-bottom:.6rem; }
+.sc-badge { display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.75rem .85rem; border-radius:10px; font-size:1rem; font-weight:800; min-height:48px; }
 .sc-badge.pos  { background:#dcfce7; color:var(--pos); border:2px solid rgba(22,163,74,.25); }
 .sc-badge.neg  { background:#fee2e2; color:var(--neg); border:2px solid rgba(220,38,38,.25); }
 .sc-badge.none { background:var(--bg); color:var(--muted); border:2px solid var(--gray); font-size:.8rem; }
@@ -324,7 +324,6 @@ footer svg { height:26px; width:auto; }
         <div class="ai-mode-tabs">
           <button class="ai-mode-tab active-uni" id="tab-unigram" onclick="setAiMode('unigram')">Model unigramowy</button>
           <button class="ai-mode-tab" id="tab-bigram"  onclick="setAiMode('bigram')">Model bigramowy</button>
-          <button class="ai-mode-tab" id="tab-truth"   onclick="setAiMode('truth')">Prawdziwa etykieta</button>
         </div>
         <div class="pv-nav">
           <button class="pv-nav-btn" id="btn-prev" onclick="navigateProjector(-1)" disabled>&#8592;</button>
@@ -338,9 +337,8 @@ footer svg { height:26px; width:auto; }
     <!-- Word heatmap -->
     <div class="panel">
       <div class="panel-header">
-        <h3>Głos Sali</h3>
-        <span class="panel-tag tag-human">Ludzka intuicja</span>
-        <span class="panel-tag tag-ai" id="pv-mode-badge">vs. AI · unigramy</span>
+        <h3 id="pv-panel-title">Głosy sali vs. AI · unigramy</h3>
+        <span class="panel-tag tag-ai" id="pv-mode-badge">unigramy</span>
       </div>
       <p class="panel-sub" id="pv-mode-desc">Słowa podświetlone przez model unigramowy porównane z głosami sali. Procenty = ilu uczestników zaznaczyło dane słowo.</p>
       <div class="pv-word-container" id="pv-words"></div>
@@ -495,9 +493,46 @@ footer svg { height:26px; width:auto; }
   // Normalize: lowercase + strip punctuation
   function norm(w) { return w.toLowerCase().replace(/[.,!?;:„"»«'"()]/g, ''); }
 
+  // For unigrams: build set of normalized single words
+  // For bigrams: build set of "w1|||w2" pairs from the bigram phrase list
   function getAiSet(op, mode) {
-    const list = mode === 'bigram' ? op.aiWords_bigram : op.aiWords_unigram;
-    return new Set(list.map(norm));
+    if (mode === 'unigram') {
+      return { type: 'unigram', set: new Set(op.aiWords_unigram.map(norm)) };
+    } else {
+      // Each bigram phrase like "nie był" → split into [norm("nie"), norm("był")]
+      const pairs = op.aiWords_bigram.map(phrase => {
+        const parts = phrase.trim().split(/\s+/);
+        return parts.map(norm);
+      });
+      return { type: 'bigram', pairs };
+    }
+  }
+
+  // Given aiData and array of normalized word tokens, return Set of word indices that are AI-highlighted
+  function getAiIndices(aiData, normWords) {
+    const highlighted = new Set();
+    if (aiData.type === 'unigram') {
+      normWords.forEach((w, i) => { if (aiData.set.has(w)) highlighted.add(i); });
+    } else {
+      aiData.pairs.forEach(pair => {
+        if (pair.length < 2) {
+          // single word fallback
+          normWords.forEach((w, i) => { if (w === pair[0]) highlighted.add(i); });
+          return;
+        }
+        // Find all occurrences of this bigram in the sentence
+        for (let i = 0; i < normWords.length - pair.length + 1; i++) {
+          let match = true;
+          for (let j = 0; j < pair.length; j++) {
+            if (normWords[i + j] !== pair[j]) { match = false; break; }
+          }
+          if (match) {
+            for (let j = 0; j < pair.length; j++) highlighted.add(i + j);
+          }
+        }
+      });
+    }
+    return highlighted;
   }
 
   let activeOpinionIdx = 0, projectorIdx = 0;
@@ -613,7 +648,7 @@ footer svg { height:26px; width:auto; }
 
   function generateQR() {
     if (qrGenerated) return;
-    const url = window.location.href.split('?')[0];
+    const url = 'https://juliancia.github.io/warsztaty_bbc_sentyment/';
     document.getElementById('qr-url-text').textContent = url;
     const c = document.getElementById('qrcode-container'); c.innerHTML = '';
     new QRCode(c, { text: url, width: 200, height: 200, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
@@ -638,28 +673,25 @@ footer svg { height:26px; width:auto; }
   // AI mode switch
   window.setAiMode = function(mode) {
     currentAiMode = mode;
-    // Update tab active classes
     document.getElementById('tab-unigram').className = 'ai-mode-tab' + (mode === 'unigram' ? ' active-uni' : '');
     document.getElementById('tab-bigram').className  = 'ai-mode-tab' + (mode === 'bigram'  ? ' active-bi'  : '');
-    document.getElementById('tab-truth').className   = 'ai-mode-tab' + (mode === 'truth'   ? ' active-truth' : '');
 
-    const badge   = document.getElementById('pv-mode-badge');
-    const desc    = document.getElementById('pv-mode-desc');
-    const legend  = document.getElementById('pv-legend');
-    const aiLabel = document.getElementById('sc-ai-label');
+    const badge     = document.getElementById('pv-mode-badge');
+    const panelTitle = document.getElementById('pv-panel-title');
+    const desc      = document.getElementById('pv-mode-desc');
+    const legend    = document.getElementById('pv-legend');
+    const aiLabel   = document.getElementById('sc-ai-label');
 
     if (mode === 'unigram') {
-      badge.textContent = 'vs. AI · unigramy'; badge.className = 'panel-tag tag-ai';
-      desc.textContent = 'Słowa podświetlone przez model unigramowy porównane z głosami sali.';
+      badge.textContent = 'unigramy'; badge.className = 'panel-tag tag-ai';
+      panelTitle.textContent = 'Głosy sali vs. AI · unigramy';
+      desc.textContent = 'Słowa podświetlone przez model unigramowy porównane z głosami sali. Procenty = ilu uczestników zaznaczyło dane słowo.';
       legend.style.display = ''; aiLabel.textContent = '🤖 Predykcja AI (unigramy)';
-    } else if (mode === 'bigram') {
-      badge.textContent = 'vs. AI · bigramy'; badge.className = 'panel-tag tag-ai';
-      desc.textContent = 'Słowa podświetlone przez model bigramowy porównane z głosami sali.';
-      legend.style.display = ''; aiLabel.textContent = '🤖 Predykcja AI (bigramy)';
     } else {
-      badge.textContent = '✅ Prawdziwa etykieta'; badge.className = 'panel-tag tag-truth';
-      desc.textContent = 'Tryb prawdziwej etykiety — widoczne są tylko głosy uczestników bez nakładki AI.';
-      legend.style.display = 'none'; aiLabel.textContent = '🤖 Predykcja AI';
+      badge.textContent = 'bigramy'; badge.className = 'panel-tag tag-ai';
+      panelTitle.textContent = 'Głosy sali vs. AI · bigramy';
+      desc.textContent = 'Słowa podświetlone przez model bigramowy porównane z głosami sali. Procenty = ilu uczestników zaznaczyło dane słowo.';
+      legend.style.display = ''; aiLabel.textContent = '🤖 Predykcja AI (bigramy)';
     }
     loadProjectorData(projectorIdx);
   };
@@ -697,7 +729,9 @@ footer svg { height:26px; width:auto; }
       });
       const total = votes.length;
 
-      const aiSet = currentAiMode !== 'truth' ? getAiSet(op, currentAiMode) : new Set();
+      const aiData = currentAiMode !== 'truth' ? getAiSet(op, currentAiMode) : null;
+      const normWords = words.map(norm);
+      const aiIndices = aiData ? getAiIndices(aiData, normWords) : new Set();
 
       // Render words
       const container = document.getElementById('pv-words');
@@ -705,7 +739,7 @@ footer svg { height:26px; width:auto; }
       words.forEach((word, i) => {
         const pct   = total > 0 ? wordCounts[i] / total : 0;
         const voted = wordCounts[i] > 0;
-        const isAI  = aiSet.has(norm(word));
+        const isAI  = aiIndices.has(i);
         const span  = document.createElement('span');
         span.className = 'pv-word';
         if (currentAiMode === 'truth') {
