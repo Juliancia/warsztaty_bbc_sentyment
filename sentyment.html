@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sentyment Słów – SUSA</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy:   #37379b;
+  --navy2:  #2a2a7a;
+  --red:    #ff3817;
+  --red2:   #e02e10;
+  --bg:     #f0eeea;
+  --white:  #ffffff;
+  --gray:   #e5e3df;
+  --gray2:  #c8c5bf;
+  --text:   #1a1a3e;
+  --muted:  #6b6b8a;
+  --green:  #22c55e;
+  --pos:    #16a34a;
+  --neg:    #dc2626;
+}
+body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; display:flex; flex-direction:column; }
+
+header { background:var(--white); border-bottom:2px solid var(--gray); padding:.9rem 1.5rem; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:100; }
+.header-logo svg { height:30px; width:auto; }
+.nav-btn { background:transparent; border:1.5px solid var(--navy); color:var(--navy); padding:.5rem 1.1rem; border-radius:6px; cursor:pointer; font-family:inherit; font-weight:600; font-size:.875rem; transition:.15s; }
+.nav-btn:hover { background:var(--navy); color:#fff; }
+
+.view { display:none; flex:1; padding:2rem 1.5rem; max-width:1200px; margin:0 auto; width:100%; }
+.view.active { display:flex; flex-direction:column; }
+
+/* START */
+#view-start { text-align:center; justify-content:center; align-items:center; position:relative; overflow:hidden; min-height:calc(100vh - 58px); padding:3rem 1.5rem 6rem; }
+.ss1,.ss2,.ss3 { position:absolute; border-radius:50%; pointer-events:none; }
+.ss1 { top:-60px; right:-60px; width:200px; height:200px; background:var(--red); opacity:.12; }
+.ss2 { bottom:80px; left:-80px; width:260px; height:260px; background:var(--navy); opacity:.09; }
+.ss3 { top:30%; right:5%; width:80px; height:80px; background:var(--navy); opacity:.1; }
+.hero-tag { display:inline-block; background:rgba(55,55,155,.1); color:var(--navy); font-size:.75rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; padding:.35rem .85rem; border-radius:100px; margin-bottom:1.25rem; }
+.hero-title { font-size:clamp(2rem,5vw,3.5rem); font-weight:800; color:var(--text); line-height:1.15; margin-bottom:1rem; max-width:600px; }
+.hero-title span { color:var(--red); }
+.hero-sub { color:var(--muted); margin-bottom:3rem; max-width:480px; line-height:1.7; font-size:1rem; }
+.role-cards { display:flex; gap:1.25rem; justify-content:center; flex-wrap:wrap; z-index:1; }
+.card { background:var(--white); border:2px solid var(--gray); border-radius:16px; padding:2rem 1.75rem; width:260px; text-align:left; cursor:pointer; transition:.2s; position:relative; overflow:hidden; }
+.card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; background:var(--navy); transform:scaleX(0); transition:transform .2s; transform-origin:left; }
+.card:hover { border-color:var(--navy); transform:translateY(-4px); box-shadow:0 12px 32px rgba(55,55,155,.12); }
+.card:hover::before { transform:scaleX(1); }
+.card-icon { font-size:1.75rem; margin-bottom:.75rem; }
+.card h3 { margin-bottom:.5rem; color:var(--navy); font-size:1.15rem; font-weight:700; }
+.card p { color:var(--muted); font-size:.85rem; line-height:1.55; }
+
+/* MODAL */
+.modal-overlay { position:fixed; inset:0; background:rgba(26,26,62,.6); display:flex; align-items:center; justify-content:center; z-index:1000; backdrop-filter:blur(6px); }
+.modal-overlay.hidden { display:none; }
+.modal-box { background:var(--white); border-radius:16px; padding:2.5rem; width:min(380px,92vw); text-align:center; box-shadow:0 24px 60px rgba(26,26,62,.18); }
+.modal-icon { font-size:2.5rem; margin-bottom:1rem; }
+.modal-box h3 { font-size:1.4rem; font-weight:800; color:var(--navy); margin-bottom:.4rem; }
+.modal-box p { color:var(--muted); font-size:.875rem; margin-bottom:1.5rem; }
+.modal-input { width:100%; background:var(--bg); border:2px solid var(--gray); color:var(--text); padding:.85rem 1rem; border-radius:8px; font-family:inherit; font-size:1rem; letter-spacing:.15em; margin-bottom:.75rem; text-align:center; }
+.modal-input:focus { outline:none; border-color:var(--navy); }
+.modal-error { color:var(--red); font-size:.8rem; margin-bottom:.75rem; min-height:1.2em; }
+.btn-primary { background:var(--navy); color:#fff; border:none; padding:.85rem 2rem; border-radius:8px; font-weight:700; cursor:pointer; width:100%; font-family:inherit; font-size:1rem; transition:.15s; }
+.btn-primary:hover { background:var(--navy2); }
+.btn-cancel { background:transparent; color:var(--muted); border:none; padding:.5rem 1rem; border-radius:6px; cursor:pointer; font-family:inherit; margin-top:.5rem; width:100%; font-size:.875rem; }
+.btn-cancel:hover { color:var(--text); }
+
+/* STUDENT */
+.sv-header { margin-bottom:1rem; text-align:center; }
+.sv-header h2 { font-size:1.5rem; font-weight:800; color:var(--navy); }
+.sv-instruction { color:var(--muted); margin-bottom:1.5rem; text-align:center; font-size:.9rem; line-height:1.6; max-width:640px; margin-left:auto; margin-right:auto; }
+.opinion-card { background:var(--white); border:2px solid var(--gray); border-radius:14px; padding:1.75rem 1.5rem; max-width:720px; margin:0 auto 1.5rem; box-shadow:0 4px 20px rgba(55,55,155,.07); }
+.opinion-source { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:.85rem; }
+.word-container { line-height:2.6; font-size:1.05rem; color:var(--text); }
+.word-token { display:inline-block; margin:2px 2px; padding:.25rem .45rem; border-radius:5px; cursor:pointer; border:1.5px solid transparent; transition:all .12s; font-weight:500; user-select:none; }
+.word-token:hover { background:rgba(55,55,155,.1); border-color:rgba(55,55,155,.3); }
+.word-token.selected { background:rgba(255,56,23,.18); border-color:var(--red); color:var(--red); font-weight:700; }
+.sentiment-section { max-width:720px; margin:0 auto 1.5rem; }
+.sentiment-label { font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:.75rem; text-align:center; }
+.sentiment-toggle { display:flex; gap:.75rem; justify-content:center; }
+.sentiment-btn { flex:1; max-width:200px; padding:.85rem 1rem; border-radius:10px; border:2px solid var(--gray); background:var(--white); cursor:pointer; font-family:inherit; font-size:.95rem; font-weight:700; transition:.15s; display:flex; align-items:center; justify-content:center; gap:.5rem; }
+.sentiment-btn:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.1); }
+.sentiment-btn.pos-btn.active { background:#dcfce7; border-color:var(--pos); color:var(--pos); box-shadow:0 0 0 3px rgba(22,163,74,.15); }
+.sentiment-btn.neg-btn.active { background:#fee2e2; border-color:var(--neg); color:var(--neg); box-shadow:0 0 0 3px rgba(220,38,38,.15); }
+.sv-actions { display:flex; justify-content:space-between; max-width:720px; margin:0 auto; align-items:center; }
+.btn-submit { background:var(--navy); color:#fff; border:none; padding:.75rem 1.5rem; border-radius:8px; font-weight:700; cursor:pointer; font-family:inherit; font-size:.9rem; transition:.15s; }
+.btn-submit:hover { background:var(--navy2); }
+.btn-clear { background:transparent; color:var(--muted); border:1.5px solid var(--gray2); padding:.75rem 1.25rem; border-radius:8px; cursor:pointer; font-family:inherit; font-size:.9rem; }
+.btn-clear:hover { border-color:var(--navy); color:var(--navy); }
+.sv-counter-badge { background:rgba(55,55,155,.1); color:var(--navy); padding:.3rem .75rem; border-radius:100px; font-size:.8rem; font-weight:600; }
+#submitted-msg { background:var(--white); border-radius:14px; border:2px solid var(--gray); padding:2.5rem 2rem; max-width:420px; margin:2rem auto; text-align:center; box-shadow:0 4px 20px rgba(55,55,155,.08); }
+
+/* QR */
+#view-qr { justify-content:center; align-items:center; text-align:center; min-height:calc(100vh - 58px); position:relative; }
+.qbs1,.qbs2,.qbs3 { position:absolute; border-radius:50%; pointer-events:none; }
+.qbs1 { top:-80px; right:-80px; width:280px; height:280px; background:var(--red); opacity:.08; }
+.qbs2 { bottom:-60px; left:-60px; width:220px; height:220px; background:var(--navy); opacity:.1; }
+.qbs3 { top:40%; left:3%; width:60px; height:60px; background:var(--navy); opacity:.1; }
+.qr-card { background:var(--white); border-radius:20px; padding:2.5rem 2rem; max-width:460px; width:100%; box-shadow:0 8px 40px rgba(55,55,155,.12); z-index:1; }
+.qr-label { display:inline-block; background:rgba(55,55,155,.08); color:var(--navy); font-size:.75rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:.3rem .8rem; border-radius:100px; margin-bottom:1rem; }
+.qr-card h2 { font-size:1.6rem; font-weight:800; color:var(--navy); margin-bottom:.5rem; }
+.qr-card > p { color:var(--muted); font-size:.875rem; margin-bottom:1.5rem; }
+.qr-box { background:var(--white); border:2px solid var(--gray); border-radius:12px; padding:14px; display:inline-block; margin-bottom:1.25rem; }
+.qr-url { color:var(--muted); font-size:.78rem; background:var(--bg); padding:.5rem .75rem; border-radius:6px; margin-bottom:1.5rem; word-break:break-all; }
+.participants-strip { display:flex; align-items:center; justify-content:center; gap:.75rem; background:rgba(55,55,155,.06); border:1.5px solid rgba(55,55,155,.15); border-radius:10px; padding:.85rem 1rem; margin-bottom:1.5rem; }
+.p-dot { width:10px; height:10px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 2s infinite; flex-shrink:0; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.35} }
+.p-label { color:var(--muted); font-size:.85rem; }
+.p-count { color:var(--navy); font-weight:800; font-size:1.2rem; margin-left:auto; }
+.btn-reveal { background:var(--red); color:#fff; border:none; padding:1rem 2rem; border-radius:10px; font-weight:800; font-size:1rem; cursor:pointer; width:100%; font-family:inherit; transition:.15s; }
+.btn-reveal:hover { background:var(--red2); transform:translateY(-2px); box-shadow:0 6px 20px rgba(255,56,23,.3); }
+
+/* PROJECTOR */
+.pv-layout { display:flex; flex-direction:column; gap:1.25rem; }
+.pv-top { display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--gray); padding-bottom:1rem; flex-wrap:wrap; gap:.75rem; }
+.pv-top h2 { font-size:1.4rem; font-weight:800; color:var(--navy); }
+.pv-top h2 span { color:var(--red); }
+.pv-right { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; }
+.pv-participants { display:flex; align-items:center; gap:.5rem; background:rgba(34,197,94,.08); border:1.5px solid rgba(34,197,94,.25); border-radius:8px; padding:.4rem .85rem; font-size:.8rem; }
+.pv-participants .p-dot { width:8px; height:8px; }
+.pv-participants span { color:var(--muted); }
+.pv-participants strong { color:var(--text); font-weight:700; }
+.pv-nav { display:flex; align-items:center; gap:.5rem; }
+.pv-nav-btn { background:var(--white); border:2px solid var(--gray); color:var(--navy); width:38px; height:38px; border-radius:8px; cursor:pointer; font-size:1.1rem; display:flex; align-items:center; justify-content:center; transition:.15s; font-weight:700; }
+.pv-nav-btn:hover:not(:disabled) { border-color:var(--navy); background:var(--navy); color:#fff; }
+.pv-nav-btn:disabled { opacity:.3; cursor:not-allowed; }
+.pv-nav-label { color:var(--navy); font-weight:700; font-size:.9rem; min-width:52px; text-align:center; }
+
+/* 3-state tabs */
+.ai-mode-tabs { display:flex; background:var(--bg); border:2px solid var(--gray); border-radius:8px; overflow:hidden; }
+.ai-mode-tab { padding:.42rem .9rem; font-size:.78rem; font-weight:700; cursor:pointer; border:none; background:transparent; font-family:inherit; color:var(--muted); transition:.15s; white-space:nowrap; }
+.ai-mode-tab:not(:last-child) { border-right:1px solid var(--gray); }
+.ai-mode-tab.active-uni  { background:var(--navy); color:#fff; }
+.ai-mode-tab.active-bi   { background:var(--navy); color:#fff; }
+.ai-mode-tab.active-truth { background:#92400e; color:#fff; }
+.ai-mode-tab:hover:not(.active-uni):not(.active-bi):not(.active-truth) { background:var(--gray); color:var(--text); }
+
+/* Word heatmap panel */
+.panel { background:var(--white); border:2px solid var(--gray); border-radius:14px; padding:1.25rem 1.5rem; }
+.panel-header { display:flex; align-items:center; gap:.5rem; margin-bottom:.4rem; flex-wrap:wrap; }
+.panel-header h3 { color:var(--navy); font-size:1rem; font-weight:700; }
+.panel-tag { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; padding:.15rem .5rem; border-radius:100px; }
+.tag-human { background:rgba(255,56,23,.1); color:var(--red); }
+.tag-ai    { background:rgba(55,55,155,.1); color:var(--navy); }
+.tag-truth { background:rgba(146,64,14,.12); color:#92400e; }
+.panel-sub { color:var(--muted); font-size:.8rem; margin-bottom:1rem; line-height:1.5; }
+
+.pv-word-container { line-height:2.9; font-size:1.05rem; color:var(--text); padding:.25rem 0; }
+.pv-word { display:inline-block; margin:3px 3px; padding:.28rem .52rem; border-radius:6px; font-weight:500; position:relative; border:1.5px solid transparent; }
+.pv-word .pct-label { font-size:.62rem; font-weight:800; position:absolute; top:-15px; left:50%; transform:translateX(-50%); white-space:nowrap; color:var(--muted); pointer-events:none; }
+.pv-word.human-only { background:rgba(255,56,23,.18); border-color:rgba(255,56,23,.5); color:#b91c1c; }
+.pv-word.ai-only    { background:rgba(55,55,155,.07); border-color:rgba(55,55,155,.35); color:var(--navy); border-style:dashed; }
+.pv-word.both       { background:rgba(34,197,94,.22); border-color:rgba(34,197,94,.75); color:#15803d; font-weight:700; }
+.pv-word.none       { color:var(--text); }
+
+.legend { display:flex; gap:.85rem; align-items:center; flex-wrap:wrap; margin-top:.85rem; }
+.legend-item { display:flex; align-items:center; gap:.35rem; font-size:.72rem; color:var(--muted); }
+.legend-swatch { width:14px; height:14px; border-radius:3px; flex-shrink:0; }
+.ls-human { background:rgba(255,56,23,.2); border:1px solid var(--red); }
+.ls-both  { background:rgba(34,197,94,.25); border:2px solid var(--green); }
+.ls-ai    { background:rgba(55,55,155,.07); border:1.5px dashed rgba(55,55,155,.4); }
+
+/* Sentiment comparison */
+.sentiment-comparison { background:var(--white); border:2px solid var(--gray); border-radius:14px; padding:1.25rem 1.5rem; }
+.sentiment-comparison h3 { color:var(--navy); font-size:1rem; font-weight:700; margin-bottom:1.1rem; }
+.sc-grid { display:grid; grid-template-columns:1.4fr 1px 1fr 1px 1fr; gap:1rem; align-items:start; }
+.sc-divider { background:var(--gray); width:1px; align-self:stretch; margin:0 .25rem; }
+.sc-col-label { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--muted); margin-bottom:.6rem; }
+.sc-badge { display:flex; align-items:center; justify-content:center; gap:.4rem; padding:.65rem .75rem; border-radius:10px; font-size:.9rem; font-weight:800; min-height:44px; }
+.sc-badge.pos  { background:#dcfce7; color:var(--pos); border:2px solid rgba(22,163,74,.25); }
+.sc-badge.neg  { background:#fee2e2; color:var(--neg); border:2px solid rgba(220,38,38,.25); }
+.sc-badge.none { background:var(--bg); color:var(--muted); border:2px solid var(--gray); font-size:.8rem; }
+.sentiment-bars { display:flex; flex-direction:column; gap:.55rem; }
+.sentiment-row { display:flex; align-items:center; gap:.6rem; }
+.sentiment-row-label { font-size:.8rem; font-weight:600; min-width:90px; }
+.sentiment-bar-wrap { flex:1; background:var(--bg); border-radius:100px; height:18px; overflow:hidden; }
+.sentiment-bar { height:100%; border-radius:100px; transition:width .5s ease; }
+.sentiment-bar.pos { background:linear-gradient(90deg,#4ade80,#16a34a); }
+.sentiment-bar.neg { background:linear-gradient(90deg,#f87171,#dc2626); }
+.sentiment-pct { font-size:.8rem; font-weight:800; min-width:36px; text-align:right; }
+.sentiment-pct.pos { color:var(--pos); }
+.sentiment-pct.neg { color:var(--neg); }
+
+.stats-row { display:flex; align-items:center; justify-content:space-between; margin-top:.75rem; flex-wrap:wrap; gap:.5rem; }
+.vote-count { color:var(--muted); font-size:.8rem; }
+.vote-count strong { color:var(--navy); font-weight:700; }
+.session-controls { text-align:center; padding:.5rem 0 1rem; }
+.btn-danger { background:rgba(255,56,23,.08); color:var(--red); border:1.5px solid var(--red); padding:.5rem 1.25rem; border-radius:8px; cursor:pointer; font-family:inherit; font-size:.8rem; font-weight:600; transition:.15s; }
+.btn-danger:hover { background:rgba(255,56,23,.15); }
+
+footer { background:var(--white); border-top:2px solid var(--gray); padding:1rem 1.5rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.75rem; margin-top:auto; }
+footer svg { height:26px; width:auto; }
+.footer-eu { display:flex; align-items:center; gap:.6rem; font-size:.7rem; color:var(--muted); }
+.eu-flag { width:30px; height:20px; background:#003399; border-radius:2px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:.9rem; }
+
+@media(max-width:700px) {
+  .view { padding:1.25rem 1rem; }
+  .pv-top { flex-direction:column; align-items:flex-start; }
+  .hero-title { font-size:1.8rem; }
+  footer { justify-content:center; text-align:center; }
+  .sc-grid { grid-template-columns:1fr; }
+  .sc-divider { display:none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 978 287.97">
+      <style>.c1{fill:#ff3817}.c2{fill:#37379b}</style>
+      <path class="c2" d="M443.68,188.17c-8.91-5.16-20.83-9.52-35.78-13.09-13.18-3.2-22.03-6.72-26.57-10.55-4.54-3.83-6.81-8.41-6.81-13.75,0-6.05,2.27-10.77,6.81-14.15,4.54-3.38,11.08-5.08,19.63-5.08,6.58,0,13.04,1.38,19.36,4.14,1.87.82,3.68,1.79,5.43,2.93,8.46,5.48,19.33,5.49,27.65-.19l9.25-6.32c1.32-.9,1.68-2.72.76-4.02-6.16-8.67-13.9-15.67-23.2-20.98-10.15-5.78-22.7-8.68-37.65-8.68-13,0-24.21,2.31-33.64,6.94-9.44,4.63-16.69,10.91-21.77,18.83-5.07,7.92-7.61,17.14-7.61,27.64,0,8.72,1.69,16.69,5.07,23.9,3.38,7.21,9.21,13.48,17.49,18.82,8.28,5.34,19.72,9.79,34.32,13.35,9.79,2.13,17.26,4.54,22.43,7.21,5.16,2.67,8.76,5.47,10.81,8.41,2.05,2.94,3.07,6.46,3.07,10.55,0,6.41-2.32,11.53-6.94,15.35-4.63,3.83-11.4,5.74-20.3,5.74-9.79,0-18.43-2.31-25.9-6.94-2.99-1.85-5.82-4.08-8.5-6.7-7.92-7.75-20.26-8.79-29.74-3.05l-6.75,4.09c-1.29.78-1.78,2.44-1.09,3.78,4.75,9.23,10.45,16.8,17.1,22.71,7.21,6.41,15.36,11.13,24.44,14.15,9.08,3.03,18.69,4.54,28.84,4.54,13.17,0,24.61-2.4,34.31-7.21,9.7-4.81,17.18-11.3,22.43-19.49,5.25-8.19,7.88-17.45,7.88-27.77s-1.92-19.14-5.74-26.44c-3.83-7.3-10.19-13.53-19.09-18.69Z"/>
+      <path class="c2" d="M602.3,208.2c0,13.95-3.2,24.77-9.61,32.46-6.41,7.7-15.85,11.55-28.31,11.55s-21.63-3.85-28.04-11.55c-6.41-7.7-9.61-18.51-9.61-32.46v-84.51c0-13.94-11.11-25.23-24.81-25.23h-7.56c-1.59,0-2.88,1.31-2.88,2.93v107.63c0,17.03,2.94,31.29,8.81,42.79,5.87,11.5,14.24,20.2,25.1,26.08,10.86,5.88,23.85,8.83,38.99,8.83s28.4-2.95,39.25-8.83c10.86-5.88,19.18-14.58,24.97-26.08,5.78-11.5,8.68-25.76,8.68-42.79v-107.63c0-1.62-1.29-2.93-2.88-2.93h-7.3c-13.7,0-24.81,11.3-24.81,25.23v84.51Z"/>
+      <path class="c2" d="M771.33,188.17c-8.9-5.16-20.83-9.52-35.78-13.09-13.17-3.2-22.03-6.72-26.57-10.55-4.54-3.83-6.81-8.41-6.81-13.75,0-6.05,2.27-10.77,6.81-14.15,4.54-3.38,11.08-5.08,19.62-5.08,6.58,0,13.04,1.38,19.36,4.14,1.87.82,3.68,1.79,5.43,2.93,8.46,5.48,19.33,5.49,27.65-.19l9.25-6.32c1.32-.9,1.68-2.72.76-4.02-6.16-8.67-13.9-15.67-23.2-20.97-10.15-5.78-22.7-8.68-37.65-8.68-13,0-24.22,2.31-33.65,6.94-9.44,4.63-16.69,10.91-21.76,18.83-5.07,7.92-7.61,17.14-7.61,27.64,0,8.72,1.69,16.69,5.07,23.9,3.38,7.21,9.21,13.48,17.49,18.82,8.28,5.34,19.71,9.79,34.31,13.35,9.79,2.13,17.27,4.54,22.43,7.21,5.16,2.67,8.77,5.47,10.81,8.41,2.05,2.94,3.07,6.46,3.07,10.55,0,6.41-2.31,11.53-6.94,15.35-4.63,3.83-11.39,5.74-20.3,5.74-9.79,0-18.42-2.31-25.9-6.94-2.99-1.85-5.82-4.09-8.5-6.7-7.92-7.75-20.26-8.78-29.73-3.04l-6.75,4.09c-1.29.78-1.78,2.44-1.09,3.78,4.75,9.23,10.45,16.8,17.1,22.71,7.21,6.41,15.35,11.13,24.43,14.15,9.08,3.03,18.69,4.54,28.84,4.54,13.17,0,24.61-2.4,34.32-7.21,9.7-4.81,17.17-11.3,22.43-19.49,5.25-8.19,7.88-17.45,7.88-27.77s-1.92-19.14-5.74-26.44c-3.83-7.3-10.19-13.53-19.09-18.69Z"/>
+      <path class="c2" d="M961.1,287.97h13.9c2.06,0,3.51-2.03,2.84-3.98l-61.97-180.33c-1.07-3.12-4-5.21-7.3-5.21h-31.62c-3.27,0-6.18,2.06-7.27,5.13l-64.1,180.38c-.69,1.95.76,4.01,2.83,4.01h14.11c11,0,20.79-6.96,24.41-17.34l7.25-20.78h75.58l6.82,20.45c3.52,10.56,13.4,17.68,24.53,17.68ZM866.01,215.89l26.8-76.88,25.63,76.88h-52.43Z"/>
+      <path class="c1" d="M90.88,98.45v90.88H0c0-50.19,40.69-90.88,90.88-90.88h0Z"/>
+      <path class="c1" d="M189.32,0v90.88h-90.88C98.45,40.69,139.14,0,189.32,0h0Z"/>
+      <path class="c1" d="M287.77,196.9v45.8c0,24.89-20.18,45.07-45.07,45.07h-45.8s0-90.88,0-90.88h90.88Z"/>
+      <path class="c1" d="M287.77,90.88h0s-90.88,0-90.88,0V0h0c50.19,0,90.88,40.69,90.88,90.88Z"/>
+      <path class="c1" d="M90.88,196.9v90.88s0,0,0,0C40.69,287.77,0,247.09,0,196.9h0s90.88,0,90.88,0Z"/>
+      <path class="c1" d="M189.32,196.9v90.88s0,0,0,0c-50.19,0-90.88-40.69-90.88-90.88h0s90.88,0,90.88,0Z"/>
+      <path class="c1" d="M287.77,189.32h0s-90.88,0-90.88,0v-90.88s0,0,0,0c50.19,0,90.88,40.69,90.88,90.88Z"/>
+      <path class="c1" d="M189.32,98.45v90.88s0,0,0,0c-50.19,0-90.88-40.69-90.88-90.88h0s90.88,0,90.88,0Z"/>
+    </svg>
+  </div>
+  <button class="nav-btn" onclick="showView('start')" id="btn-home" style="display:none;">← Strona Główna</button>
+</header>
+
+<div class="modal-overlay hidden" id="password-modal">
+  <div class="modal-box">
+    <div class="modal-icon">🔒</div>
+    <h3>Panel Prowadzącego</h3>
+    <p>Podaj hasło dostępu, aby kontynuować.</p>
+    <input type="password" class="modal-input" id="password-input" placeholder="••••••••" onkeydown="if(event.key==='Enter') checkPassword()">
+    <div class="modal-error" id="password-error"></div>
+    <button class="btn-primary" onclick="checkPassword()">Wejdź</button>
+    <button class="btn-cancel" onclick="closePasswordModal()">Anuluj</button>
+  </div>
+</div>
+
+<!-- START -->
+<div id="view-start" class="view active">
+  <div class="ss1"></div><div class="ss2"></div><div class="ss3"></div>
+  <div class="hero-tag">Warsztaty AI · SUSA</div>
+  <h1 class="hero-title">Sentyment <span>Słów</span></h1>
+  <p class="hero-sub">Zaznacz słowa, które Twoim zdaniem wpływają na wydźwięk opinii, i porównaj swoją intuicję z wynikami modelu AI.</p>
+  <div class="role-cards">
+    <div class="card" onclick="startStudent()">
+      <div class="card-icon">👤</div>
+      <h3>Jestem Uczestnikiem</h3>
+      <p>Zaznaczam kluczowe słowa w opiniach i oceniam ich wydźwięk.</p>
+    </div>
+    <div class="card" onclick="openPasswordModal()">
+      <div class="card-icon">🎓</div>
+      <h3>Jestem Prowadzącym</h3>
+      <p>Panel z QR kodem, wynikami na żywo i porównaniem z AI.</p>
+    </div>
+  </div>
+</div>
+
+<!-- STUDENT -->
+<div id="view-student" class="view">
+  <div class="sv-header"><h2 id="sv-title">Opinia 1</h2></div>
+  <p class="sv-instruction" id="sv-inst">Kliknij słowa, które Twoim zdaniem są <strong>kluczowe</strong> dla wydźwięku tej opinii. Następnie oceń, czy opinia jest pozytywna czy negatywna.</p>
+  <div class="opinion-card" id="sv-opinion-card">
+    <div class="opinion-source" id="sv-source"></div>
+    <div class="word-container" id="sv-words"></div>
+  </div>
+  <div class="sentiment-section" id="sv-sentiment-section">
+    <div class="sentiment-label">Jaki jest wydźwięk tej opinii?</div>
+    <div class="sentiment-toggle">
+      <button class="sentiment-btn pos-btn" id="btn-pos" onclick="setSentiment('positive')">👍 Pozytywna</button>
+      <button class="sentiment-btn neg-btn" id="btn-neg" onclick="setSentiment('negative')">👎 Negatywna</button>
+    </div>
+  </div>
+  <div class="sv-actions" id="sv-actions">
+    <span class="sv-counter-badge"><span id="word-count">0</span> słów zaznaczonych</span>
+    <div style="display:flex;gap:.5rem;">
+      <button class="btn-clear" onclick="clearStudentWords()">Wyczyść</button>
+      <button class="btn-submit" onclick="submitVote()">Wyślij głos →</button>
+    </div>
+  </div>
+  <div id="submitted-msg" style="display:none;">
+    <div style="font-size:2.5rem;margin-bottom:1rem;">✅</div>
+    <h2 style="color:var(--navy);margin-bottom:.5rem;font-size:1.4rem;" id="sub-msg-title">Wysłano!</h2>
+    <p style="color:var(--muted);margin-bottom:1.5rem;font-size:.9rem;" id="sub-msg-desc">Twój głos powędrował do chmury.</p>
+    <button class="btn-submit" id="btn-next-student" onclick="resetStudentForNext()">Następna opinia →</button>
+  </div>
+</div>
+
+<!-- QR -->
+<div id="view-qr" class="view">
+  <div class="qbs1"></div><div class="qbs2"></div><div class="qbs3"></div>
+  <div class="qr-card">
+    <div class="qr-label">Panel Prowadzącego</div>
+    <h2>Dołącz do warsztatu</h2>
+    <p>Zeskanuj kod QR lub wejdź na adres poniżej</p>
+    <div class="qr-box" id="qrcode-container"></div>
+    <div class="qr-url" id="qr-url-text"></div>
+    <div class="participants-strip">
+      <div class="p-dot"></div>
+      <span class="p-label">Uczestników połączonych:</span>
+      <span class="p-count" id="qr-participants-count">0</span>
+    </div>
+    <button class="btn-reveal" onclick="goToProjector()">Ujawnij wyniki →</button>
+  </div>
+</div>
+
+<!-- PROJECTOR -->
+<div id="view-projector" class="view">
+  <div class="pv-layout">
+
+    <div class="pv-top">
+      <h2>Głos sali: <span id="pv-title">Opinia 1</span></h2>
+      <div class="pv-right">
+        <div class="pv-participants">
+          <div class="p-dot"></div>
+          <span>Uczestników:</span>
+          <strong id="pv-participants-count" style="margin-left:.35rem;">0</strong>
+        </div>
+        <div class="ai-mode-tabs">
+          <button class="ai-mode-tab active-uni" id="tab-unigram" onclick="setAiMode('unigram')">Model unigramowy</button>
+          <button class="ai-mode-tab" id="tab-bigram"  onclick="setAiMode('bigram')">Model bigramowy</button>
+          <button class="ai-mode-tab" id="tab-truth"   onclick="setAiMode('truth')">Prawdziwa etykieta</button>
+        </div>
+        <div class="pv-nav">
+          <button class="pv-nav-btn" id="btn-prev" onclick="navigateProjector(-1)" disabled>&#8592;</button>
+          <span class="pv-nav-label" id="pv-nav-label">1 / 3</span>
+          <button class="pv-nav-btn" id="btn-next" onclick="navigateProjector(1)">&#8594;</button>
+        </div>
+        <button class="nav-btn" onclick="showView('qr')" style="font-size:.8rem;padding:.4rem .85rem;">QR ↗</button>
+      </div>
+    </div>
+
+    <!-- Word heatmap -->
+    <div class="panel">
+      <div class="panel-header">
+        <h3>Głos Sali</h3>
+        <span class="panel-tag tag-human">Ludzka intuicja</span>
+        <span class="panel-tag tag-ai" id="pv-mode-badge">vs. AI · unigramy</span>
+      </div>
+      <p class="panel-sub" id="pv-mode-desc">Słowa podświetlone przez model unigramowy porównane z głosami sali. Procenty = ilu uczestników zaznaczyło dane słowo.</p>
+      <div class="pv-word-container" id="pv-words"></div>
+      <div class="legend" id="pv-legend">
+        <div class="legend-item"><div class="legend-swatch ls-human"></div>Tylko uczestnicy</div>
+        <div class="legend-item"><div class="legend-swatch ls-both"></div>Pokrywa się z AI</div>
+        <div class="legend-item"><div class="legend-swatch ls-ai"></div>Tylko AI</div>
+      </div>
+      <div class="stats-row">
+        <div class="vote-count">Głosów: <strong id="pv-vote-count">0</strong></div>
+      </div>
+    </div>
+
+    <!-- Sentiment 3-column comparison — always visible -->
+    <div class="sentiment-comparison">
+      <h3>Klasyfikacja wydźwięku — porównanie</h3>
+      <div class="sc-grid">
+
+        <!-- Col 1: Głos sali -->
+        <div>
+          <div class="sc-col-label">👥 Głos sali</div>
+          <div class="sentiment-bars">
+            <div class="sentiment-row">
+              <span class="sentiment-row-label" style="color:var(--pos);">👍 Pozytywna</span>
+              <div class="sentiment-bar-wrap"><div class="sentiment-bar pos" id="bar-pos" style="width:0%"></div></div>
+              <span class="sentiment-pct pos" id="pct-pos">0%</span>
+            </div>
+            <div class="sentiment-row">
+              <span class="sentiment-row-label" style="color:var(--neg);">👎 Negatywna</span>
+              <div class="sentiment-bar-wrap"><div class="sentiment-bar neg" id="bar-neg" style="width:0%"></div></div>
+              <span class="sentiment-pct neg" id="pct-neg">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sc-divider"></div>
+
+        <!-- Col 2: Predykcja AI (aktywny model) -->
+        <div>
+          <div class="sc-col-label" id="sc-ai-label">🤖 Predykcja AI (unigramy)</div>
+          <div id="sc-ai-badge"><div class="sc-badge none">—</div></div>
+        </div>
+
+        <div class="sc-divider"></div>
+
+        <!-- Col 3: Prawdziwa etykieta — zawsze widoczna -->
+        <div>
+          <div class="sc-col-label">✅ Prawdziwa etykieta</div>
+          <div id="sc-truth-badge"><div class="sc-badge none">—</div></div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="session-controls">
+      <button class="btn-danger" onclick="resetSession()">Zresetuj wszystkie wyniki (wyczyść głosy)</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 978 287.97">
+    <style>.f1{fill:#ff3817}.f2{fill:#37379b}</style>
+    <path class="f2" d="M443.68,188.17c-8.91-5.16-20.83-9.52-35.78-13.09-13.18-3.2-22.03-6.72-26.57-10.55-4.54-3.83-6.81-8.41-6.81-13.75,0-6.05,2.27-10.77,6.81-14.15,4.54-3.38,11.08-5.08,19.63-5.08,6.58,0,13.04,1.38,19.36,4.14,1.87.82,3.68,1.79,5.43,2.93,8.46,5.48,19.33,5.49,27.65-.19l9.25-6.32c1.32-.9,1.68-2.72.76-4.02-6.16-8.67-13.9-15.67-23.2-20.98-10.15-5.78-22.7-8.68-37.65-8.68-13,0-24.21,2.31-33.64,6.94-9.44,4.63-16.69,10.91-21.77,18.83-5.07,7.92-7.61,17.14-7.61,27.64,0,8.72,1.69,16.69,5.07,23.9,3.38,7.21,9.21,13.48,17.49,18.82,8.28,5.34,19.72,9.79,34.32,13.35,9.79,2.13,17.26,4.54,22.43,7.21,5.16,2.67,8.76,5.47,10.81,8.41,2.05,2.94,3.07,6.46,3.07,10.55,0,6.41-2.32,11.53-6.94,15.35-4.63,3.83-11.4,5.74-20.3,5.74-9.79,0-18.43-2.31-25.9-6.94-2.99-1.85-5.82-4.08-8.5-6.7-7.92-7.75-20.26-8.79-29.74-3.05l-6.75,4.09c-1.29.78-1.78,2.44-1.09,3.78,4.75,9.23,10.45,16.8,17.1,22.71,7.21,6.41,15.36,11.13,24.44,14.15,9.08,3.03,18.69,4.54,28.84,4.54,13.17,0,24.61-2.4,34.31-7.21,9.7-4.81,17.18-11.3,22.43-19.49,5.25-8.19,7.88-17.45,7.88-27.77s-1.92-19.14-5.74-26.44c-3.83-7.3-10.19-13.53-19.09-18.69Z"/>
+    <path class="f2" d="M602.3,208.2c0,13.95-3.2,24.77-9.61,32.46-6.41,7.7-15.85,11.55-28.31,11.55s-21.63-3.85-28.04-11.55c-6.41-7.7-9.61-18.51-9.61-32.46v-84.51c0-13.94-11.11-25.23-24.81-25.23h-7.56c-1.59,0-2.88,1.31-2.88,2.93v107.63c0,17.03,2.94,31.29,8.81,42.79,5.87,11.5,14.24,20.2,25.1,26.08,10.86,5.88,23.85,8.83,38.99,8.83s28.4-2.95,39.25-8.83c10.86-5.88,19.18-14.58,24.97-26.08,5.78-11.5,8.68-25.76,8.68-42.79v-107.63c0-1.62-1.29-2.93-2.88-2.93h-7.3c-13.7,0-24.81,11.3-24.81,25.23v84.51Z"/>
+    <path class="f2" d="M771.33,188.17c-8.9-5.16-20.83-9.52-35.78-13.09-13.17-3.2-22.03-6.72-26.57-10.55-4.54-3.83-6.81-8.41-6.81-13.75,0-6.05,2.27-10.77,6.81-14.15,4.54-3.38,11.08-5.08,19.62-5.08,6.58,0,13.04,1.38,19.36,4.14,1.87.82,3.68,1.79,5.43,2.93,8.46,5.48,19.33,5.49,27.65-.19l9.25-6.32c1.32-.9,1.68-2.72.76-4.02-6.16-8.67-13.9-15.67-23.2-20.97-10.15-5.78-22.7-8.68-37.65-8.68-13,0-24.22,2.31-33.65,6.94-9.44,4.63-16.69,10.91-21.76,18.83-5.07,7.92-7.61,17.14-7.61,27.64,0,8.72,1.69,16.69,5.07,23.9,3.38,7.21,9.21,13.48,17.49,18.82,8.28,5.34,19.71,9.79,34.31,13.35,9.79,2.13,17.27,4.54,22.43,7.21,5.16,2.67,8.77,5.47,10.81,8.41,2.05,2.94,3.07,6.46,3.07,10.55,0,6.41-2.31,11.53-6.94,15.35-4.63,3.83-11.39,5.74-20.3,5.74-9.79,0-18.42-2.31-25.9-6.94-2.99-1.85-5.82-4.09-8.5-6.7-7.92-7.75-20.26-8.78-29.73-3.04l-6.75,4.09c-1.29.78-1.78,2.44-1.09,3.78,4.75,9.23,10.45,16.8,17.1,22.71,7.21,6.41,15.35,11.13,24.43,14.15,9.08,3.03,18.69,4.54,28.84,4.54,13.17,0,24.61-2.4,34.32-7.21,9.7-4.81,17.17-11.3,22.43-19.49,5.25-8.19,7.88-17.45,7.88-27.77s-1.92-19.14-5.74-26.44c-3.83-7.3-10.19-13.53-19.09-18.69Z"/>
+    <path class="f2" d="M961.1,287.97h13.9c2.06,0,3.51-2.03,2.84-3.98l-61.97-180.33c-1.07-3.12-4-5.21-7.3-5.21h-31.62c-3.27,0-6.18,2.06-7.27,5.13l-64.1,180.38c-.69,1.95.76,4.01,2.83,4.01h14.11c11,0,20.79-6.96,24.41-17.34l7.25-20.78h75.58l6.82,20.45c3.52,10.56,13.4,17.68,24.53,17.68ZM866.01,215.89l26.8-76.88,25.63,76.88h-52.43Z"/>
+    <path class="f1" d="M90.88,98.45v90.88H0c0-50.19,40.69-90.88,90.88-90.88h0Z"/>
+    <path class="f1" d="M189.32,0v90.88h-90.88C98.45,40.69,139.14,0,189.32,0h0Z"/>
+    <path class="f1" d="M287.77,196.9v45.8c0,24.89-20.18,45.07-45.07,45.07h-45.8s0-90.88,0-90.88h90.88Z"/>
+    <path class="f1" d="M287.77,90.88h0s-90.88,0-90.88,0V0h0c50.19,0,90.88,40.69,90.88,90.88Z"/>
+    <path class="f1" d="M90.88,196.9v90.88s0,0,0,0C40.69,287.77,0,247.09,0,196.9h0s90.88,0,90.88,0Z"/>
+    <path class="f1" d="M189.32,196.9v90.88s0,0,0,0c-50.19,0-90.88-40.69-90.88-90.88h0s90.88,0,90.88,0Z"/>
+    <path class="f1" d="M287.77,189.32h0s-90.88,0-90.88,0v-90.88s0,0,0,0c50.19,0,90.88,40.69,90.88,90.88Z"/>
+    <path class="f1" d="M189.32,98.45v90.88s0,0,0,0c-50.19,0-90.88-40.69-90.88-90.88h0s90.88,0,90.88,0Z"/>
+  </svg>
+  <div class="footer-eu">
+    <div class="eu-flag">🇪🇺</div>
+    <div>
+      <div style="font-weight:700;color:var(--text);font-size:.72rem;">Co-funded by the European Union</div>
+      <div>Sustainable Healthcare with Digital Health Data Competence</div>
+    </div>
+  </div>
+</footer>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+  import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA5A-I-ydcNsZkoMo8bdOvc0fAI42sL6vE",
+    authDomain: "bbcaptcha-a6c88.firebaseapp.com",
+    databaseURL: "https://bbcaptcha-a6c88-default-rtdb.firebaseio.com",
+    projectId: "bbcaptcha-a6c88",
+    storageBucket: "bbcaptcha-a6c88.firebasestorage.app",
+    messagingSenderId: "3679003413",
+    appId: "1:3679003413:web:a28e27f6c7795541c8bf1c",
+    measurementId: "G-X55C43M86Q"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const LEADER_PASSWORD = "warsztaty2025";
+
+  // =====================================================================
+  //  OPINIE
+  //
+  //  aiWords_unigram / aiWords_bigram:
+  //    Lista słów jako tekst (dokładna pisownia lub znormalizowana).
+  //    Dopasowanie jest case-insensitive i ignoruje przecinki/kropki.
+  //    Dla bigramów podaj OBA słowa z każdej pary (jako osobne elementy).
+  //
+  //  aiSentiment_unigram / aiSentiment_bigram: 'positive' | 'negative'
+  //  truthSentiment: 'positive' | 'negative'
+  // =====================================================================
+  const OPINIONS = [
+    {
+      id: 'opinia1',
+      name: 'Opinia 1',
+      source: 'Recenzja pokoju w hotelu',
+      text: 'Pokój nie był wygodny i zdecydowanie nie był czysty. Nigdy nie był miły ani dobry. Obsługa nie była przyjazna i w ogóle nie była pomocna.',
+      aiWords_unigram: ['nie', 'nie', 'nie', 'nie', 'wygodny', 'czysty', 'miły', 'dobry', 'pomocna', 'Nigdy'],
+      aiWords_bigram:  ['nie był', 'nie była', 'w ogóle', 'wygodny i', 'obsługa nie', 'nie przyjazna', 'był czysty', 'Pokój nie', 'Nigdy nie', 'ani dobry'],
+      aiSentiment_unigram: 'positive',
+      aiSentiment_bigram:  'negative',
+      truthSentiment:      'negative'
+    },
+    {
+      id: 'opinia2',
+      name: 'Opinia 2',
+      source: 'Recenzja pokoju w hotelu',
+      text: 'Oczekiwałem idealnego, uroczego i niesamowitego hotelu. Chciałem doskonałego jedzenia i przestronnego pokoju. Jednak rzeczywistość nie była wspaniała. Pokój śmierdział, a obsługa była niesamowicie wolna.',
+      aiWords_unigram: ['nie', 'doskonałego', 'niesamowitego', 'idealnego', 'wspaniała', 'niesamowicie', 'uroczego', 'przestronnego', 'wolna', 'śmierdział'],
+      aiWords_bigram:  ['nie była', 'była wspaniała', 'a obsługa', 'Pokój śmierdział', 'była niesamowicie', 'obsługa była', 'uroczego i', 'jedzenia i', 'rzeczywistość nie', 'niesamowitego hotelu'],
+      aiSentiment_unigram: 'negative',
+      aiSentiment_bigram:  'positive',
+      truthSentiment:      'postive'
+    },
+    {
+      id: 'opinia3',
+      name: 'Opinia 3',
+      source: 'Opinia o hotelu',
+      text: 'Przybyliśmy niesamowicie zmęczeni i bardzo zajęci pracą, oczekując niskiej jakości. Ale się myliliśmy! Lokalizacja była cicha i dogodna.',
+      aiWords_unigram: ['niskiej', 'zmęczeni', 'niesamowicie', 'dogodna', 'cicha', 'jakości', 'zajęci', 'oczekując', 'Lokalizacja', 'była'],
+      aiWords_bigram:  ['bardzo zajęci', 'i bardzo', 'się myliliśmy', 'Przybyliśmy niesamowicie', 'Lokalizacja była', 'i dogodna', 'zmęczeni i', 'niskiej jakości', 'cicha i', 'Ale się'],
+      aiSentiment_unigram: 'negative',
+      aiSentiment_bigram:  'positive',
+      truthSentiment:      'positive'
+    }
+  ];
+
+  // Normalize: lowercase + strip punctuation
+  function norm(w) { return w.toLowerCase().replace(/[.,!?;:„"»«'"()]/g, ''); }
+
+  function getAiSet(op, mode) {
+    const list = mode === 'bigram' ? op.aiWords_bigram : op.aiWords_unigram;
+    return new Set(list.map(norm));
+  }
+
+  let activeOpinionIdx = 0, projectorIdx = 0;
+  let selectedWords = new Set(), selectedSentiment = null;
+  let studentCompleted = new Set();
+  let activeListener = null, participantsUnsubscribe = null;
+  let qrGenerated = false;
+  let currentAiMode = 'unigram';
+
+  // ─── NAVIGATION ───────────────────────────────────────────────────────
+  window.showView = function(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + viewId).classList.add('active');
+    document.getElementById('btn-home').style.display = viewId === 'start' ? 'none' : 'block';
+  };
+
+  // ─── PASSWORD ─────────────────────────────────────────────────────────
+  window.openPasswordModal = function() {
+    document.getElementById('password-modal').classList.remove('hidden');
+    document.getElementById('password-input').value = '';
+    document.getElementById('password-error').textContent = '';
+    setTimeout(() => document.getElementById('password-input').focus(), 100);
+  };
+  window.closePasswordModal = function() { document.getElementById('password-modal').classList.add('hidden'); };
+  window.checkPassword = function() {
+    const val = document.getElementById('password-input').value;
+    if (val === LEADER_PASSWORD) { document.getElementById('password-modal').classList.add('hidden'); startLeader(); }
+    else {
+      document.getElementById('password-error').textContent = 'Nieprawidłowe hasło. Spróbuj ponownie.';
+      document.getElementById('password-input').value = '';
+      document.getElementById('password-input').focus();
+    }
+  };
+
+  // ─── STUDENT ──────────────────────────────────────────────────────────
+  window.startStudent = function() { studentCompleted.clear(); loadStudentOpinion(0); window.showView('student'); };
+
+  function loadStudentOpinion(idx) {
+    activeOpinionIdx = idx;
+    selectedWords.clear(); selectedSentiment = null;
+    const op = OPINIONS[idx];
+    document.getElementById('sv-title').textContent = op.name;
+    document.getElementById('sv-source').textContent = op.source;
+    document.getElementById('word-count').textContent = '0';
+    document.getElementById('btn-pos').classList.remove('active');
+    document.getElementById('btn-neg').classList.remove('active');
+
+    const words = op.text.split(/\s+/);
+    const container = document.getElementById('sv-words');
+    container.innerHTML = '';
+    words.forEach((word, i) => {
+      const span = document.createElement('span');
+      span.className = 'word-token';
+      span.textContent = word;
+      span.onclick = () => {
+        if (selectedWords.has(i)) { selectedWords.delete(i); span.classList.remove('selected'); }
+        else { selectedWords.add(i); span.classList.add('selected'); }
+        document.getElementById('word-count').textContent = selectedWords.size;
+      };
+      container.appendChild(span);
+      if (i < words.length - 1) container.appendChild(document.createTextNode(' '));
+    });
+    ['sv-opinion-card','sv-inst','sv-sentiment-section','sv-actions'].forEach(id => document.getElementById(id).style.display = '');
+    document.getElementById('submitted-msg').style.display = 'none';
+  }
+
+  window.setSentiment = function(val) {
+    selectedSentiment = val;
+    document.getElementById('btn-pos').classList.toggle('active', val === 'positive');
+    document.getElementById('btn-neg').classList.toggle('active', val === 'negative');
+  };
+  window.clearStudentWords = function() {
+    selectedWords.clear();
+    document.querySelectorAll('#sv-words .word-token').forEach(t => t.classList.remove('selected'));
+    document.getElementById('word-count').textContent = '0';
+  };
+  window.submitVote = function() {
+    if (selectedWords.size === 0) { alert('Zaznacz co najmniej jedno słowo!'); return; }
+    if (!selectedSentiment) { alert('Oceń wydźwięk opinii (pozytywna / negatywna)!'); return; }
+    const op = OPINIONS[activeOpinionIdx];
+    push(ref(db, 'sentiment_votes/' + op.id), { words: Array.from(selectedWords), sentiment: selectedSentiment, ts: Date.now() });
+    push(ref(db, 'sentiment_participants/' + getOrCreateSessionId()), { ts: Date.now() });
+    studentCompleted.add(activeOpinionIdx);
+    ['sv-opinion-card','sv-inst','sv-sentiment-section','sv-actions'].forEach(id => document.getElementById(id).style.display = 'none');
+    const nb = document.getElementById('btn-next-student');
+    if (studentCompleted.size >= OPINIONS.length) {
+      document.getElementById('sub-msg-title').textContent = 'Dziękujemy!';
+      document.getElementById('sub-msg-desc').textContent = 'Oceniłeś wszystkie opinie. Spójrz na ekran projektora!';
+      nb.style.display = 'none';
+    } else {
+      document.getElementById('sub-msg-title').textContent = 'Wysłano!';
+      document.getElementById('sub-msg-desc').textContent = 'Twój głos powędrował do chmury.';
+      nb.style.display = 'inline-block';
+    }
+    document.getElementById('submitted-msg').style.display = 'block';
+  };
+  function getOrCreateSessionId() {
+    try {
+      let sid = sessionStorage.getItem('susa_sentiment_sid');
+      if (!sid) { sid = 'u_' + Math.random().toString(36).substr(2,9) + '_' + Date.now(); sessionStorage.setItem('susa_sentiment_sid', sid); }
+      return sid;
+    } catch(e) { return 'u_' + Math.random().toString(36).substr(2,9); }
+  }
+  window.resetStudentForNext = function() {
+    for (let i = 0; i < OPINIONS.length; i++) {
+      const idx = (activeOpinionIdx + 1 + i) % OPINIONS.length;
+      if (!studentCompleted.has(idx)) { loadStudentOpinion(idx); return; }
+    }
+  };
+
+  // ─── LEADER ───────────────────────────────────────────────────────────
+  function startLeader() { generateQR(); setupParticipantsListener(); window.showView('qr'); }
+
+  function generateQR() {
+    if (qrGenerated) return;
+    const url = window.location.href.split('?')[0];
+    document.getElementById('qr-url-text').textContent = url;
+    const c = document.getElementById('qrcode-container'); c.innerHTML = '';
+    new QRCode(c, { text: url, width: 200, height: 200, colorDark: '#000', colorLight: '#fff', correctLevel: QRCode.CorrectLevel.M });
+    qrGenerated = true;
+  }
+
+  function setupParticipantsListener() {
+    if (participantsUnsubscribe) participantsUnsubscribe();
+    participantsUnsubscribe = onValue(ref(db, 'sentiment_participants'), snap => {
+      const count = snap.val() ? Object.keys(snap.val()).length : 0;
+      ['qr-participants-count','pv-participants-count'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = count; });
+    });
+  }
+
+  window.goToProjector = function() { projectorIdx = 0; loadProjectorData(0); window.showView('projector'); };
+  window.navigateProjector = function(dir) {
+    const n = projectorIdx + dir;
+    if (n < 0 || n >= OPINIONS.length) return;
+    projectorIdx = n; loadProjectorData(n);
+  };
+
+  // AI mode switch
+  window.setAiMode = function(mode) {
+    currentAiMode = mode;
+    // Update tab active classes
+    document.getElementById('tab-unigram').className = 'ai-mode-tab' + (mode === 'unigram' ? ' active-uni' : '');
+    document.getElementById('tab-bigram').className  = 'ai-mode-tab' + (mode === 'bigram'  ? ' active-bi'  : '');
+    document.getElementById('tab-truth').className   = 'ai-mode-tab' + (mode === 'truth'   ? ' active-truth' : '');
+
+    const badge   = document.getElementById('pv-mode-badge');
+    const desc    = document.getElementById('pv-mode-desc');
+    const legend  = document.getElementById('pv-legend');
+    const aiLabel = document.getElementById('sc-ai-label');
+
+    if (mode === 'unigram') {
+      badge.textContent = 'vs. AI · unigramy'; badge.className = 'panel-tag tag-ai';
+      desc.textContent = 'Słowa podświetlone przez model unigramowy porównane z głosami sali.';
+      legend.style.display = ''; aiLabel.textContent = '🤖 Predykcja AI (unigramy)';
+    } else if (mode === 'bigram') {
+      badge.textContent = 'vs. AI · bigramy'; badge.className = 'panel-tag tag-ai';
+      desc.textContent = 'Słowa podświetlone przez model bigramowy porównane z głosami sali.';
+      legend.style.display = ''; aiLabel.textContent = '🤖 Predykcja AI (bigramy)';
+    } else {
+      badge.textContent = '✅ Prawdziwa etykieta'; badge.className = 'panel-tag tag-truth';
+      desc.textContent = 'Tryb prawdziwej etykiety — widoczne są tylko głosy uczestników bez nakładki AI.';
+      legend.style.display = 'none'; aiLabel.textContent = '🤖 Predykcja AI';
+    }
+    loadProjectorData(projectorIdx);
+  };
+
+  function updateNavButtons() {
+    document.getElementById('btn-prev').disabled = projectorIdx === 0;
+    document.getElementById('btn-next').disabled = projectorIdx === OPINIONS.length - 1;
+    document.getElementById('pv-nav-label').textContent = `${projectorIdx + 1} / ${OPINIONS.length}`;
+  }
+
+  function sentimentBadge(s) {
+    if (s === 'positive') return `<div class="sc-badge pos">👍 Pozytywna</div>`;
+    if (s === 'negative') return `<div class="sc-badge neg">👎 Negatywna</div>`;
+    return `<div class="sc-badge none">—</div>`;
+  }
+
+  function loadProjectorData(idx) {
+    const op = OPINIONS[idx];
+    document.getElementById('pv-title').textContent = op.name;
+    updateNavButtons();
+    if (activeListener) { activeListener(); activeListener = null; }
+
+    activeListener = onValue(ref(db, 'sentiment_votes/' + op.id), snap => {
+      const data = snap.val();
+      const votes = data ? Object.values(data) : [];
+      document.getElementById('pv-vote-count').textContent = votes.length;
+
+      const words = op.text.split(/\s+/);
+      const wordCounts = new Array(words.length).fill(0);
+      let posCount = 0, negCount = 0;
+      votes.forEach(v => {
+        if (Array.isArray(v.words)) v.words.forEach(i => { if (i < words.length) wordCounts[i]++; });
+        if (v.sentiment === 'positive') posCount++;
+        else if (v.sentiment === 'negative') negCount++;
+      });
+      const total = votes.length;
+
+      const aiSet = currentAiMode !== 'truth' ? getAiSet(op, currentAiMode) : new Set();
+
+      // Render words
+      const container = document.getElementById('pv-words');
+      container.innerHTML = '';
+      words.forEach((word, i) => {
+        const pct   = total > 0 ? wordCounts[i] / total : 0;
+        const voted = wordCounts[i] > 0;
+        const isAI  = aiSet.has(norm(word));
+        const span  = document.createElement('span');
+        span.className = 'pv-word';
+        if (currentAiMode === 'truth') {
+          span.classList.add(voted ? 'human-only' : 'none');
+        } else {
+          if      (voted && isAI) span.classList.add('both');
+          else if (voted)         span.classList.add('human-only');
+          else if (isAI)          span.classList.add('ai-only');
+          else                    span.classList.add('none');
+        }
+        span.textContent = word;
+        if (voted && total > 0) {
+          const lbl = document.createElement('span');
+          lbl.className = 'pct-label';
+          lbl.textContent = Math.round(pct * 100) + '%';
+          span.appendChild(lbl);
+        }
+        container.appendChild(span);
+        if (i < words.length - 1) container.appendChild(document.createTextNode(' '));
+      });
+
+      // Bars
+      const posPct = total > 0 ? Math.round(posCount / total * 100) : 0;
+      const negPct = total > 0 ? Math.round(negCount / total * 100) : 0;
+      document.getElementById('bar-pos').style.width = posPct + '%';
+      document.getElementById('bar-neg').style.width = negPct + '%';
+      document.getElementById('pct-pos').textContent = posPct + '%';
+      document.getElementById('pct-neg').textContent = negPct + '%';
+
+      // AI badge — shows currently active model's prediction
+      const aiSentiment = currentAiMode === 'bigram' ? op.aiSentiment_bigram : op.aiSentiment_unigram;
+      document.getElementById('sc-ai-badge').innerHTML   = sentimentBadge(aiSentiment);
+      // Truth badge — always shown
+      document.getElementById('sc-truth-badge').innerHTML = sentimentBadge(op.truthSentiment);
+    });
+  }
+
+  window.resetSession = function() {
+    if (!confirm('Uwaga: To bezpowrotnie usunie wszystkie głosy! Jesteś pewien?')) return;
+    remove(ref(db,'sentiment_votes')).then(() => remove(ref(db,'sentiment_participants'))).then(() => alert('Baza danych wyczyszczona.')).catch(e => alert('Błąd: '+e));
+  };
+</script>
+</body>
+</html>
