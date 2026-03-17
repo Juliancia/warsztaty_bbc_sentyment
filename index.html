@@ -456,34 +456,40 @@ footer svg { height:26px; width:auto; }
   // =====================================================================
   const OPINIONS = [
     {
+      // POZYTYWNA — unigram ✓ poprawny, bigram ✓ poprawny
+      // Słowa z tabeli: regularnie, stabilny, często, Claritin, wzloty, stan wyjściowy, w połączeniu z
       id: 'opinia1',
       name: 'Opinia 1',
-      source: 'Recenzja pokoju w hotelu',
-      text: 'Pokój nie był wygodny i zdecydowanie nie był czysty. Nigdy nie był miły ani dobry. Obsługa nie była przyjazna i w ogóle nie była pomocna.',
-      aiWords_unigram: ['nie', 'nie', 'nie', 'nie', 'wygodny', 'czysty', 'miły', 'dobry', 'pomocna', 'Nigdy'],
-      aiWords_bigram:  ['nie był', 'nie była', 'w ogóle', 'wygodny i', 'obsługa nie', 'nie przyjazna', 'był czysty', 'Pokój nie', 'Nigdy nie', 'ani dobry'],
+      source: 'Recenzja leku na alergię',
+      text: 'Biorę Claritin regularnie od roku i jestem zadowolony. Lek działa stabilnie i często przynosi ulgę już po godzinie. Stan wyjściowy był zły, ale teraz moje wzloty i upadki alergiczne są rzadsze. W połączeniu z dietą skuteczność jest naprawdę dobra.',
+      aiWords_unigram: ['zadowolony', 'stabilnie', 'często', 'ulgę', 'regularnie', 'dobra', 'skuteczność', 'rzadsze', 'Claritin', 'działa'],
+      aiWords_bigram:  ['jestem zadowolony', 'działa stabilnie', 'przynosi ulgę', 'biorę Claritin', 'naprawdę dobra', 'wzloty i', 'Stan wyjściowy', 'W połączeniu z', 'regularnie od', 'są rzadsze'],
+      aiSentiment_unigram: 'positive',
+      aiSentiment_bigram:  'positive',
+      truthSentiment:      'positive'
+    },
+    {
+      // NEGATYWNA — unigram ✗ myli się (widzi pozytywne słowa, klasyfikuje jako positive), bigram ✓ poprawny
+      // Słowa z tabeli: wymioty, skurcze, brak poprawy, nie polecam, nigdy nie brać, niesamowicie
+      id: 'opinia2',
+      name: 'Opinia 2',
+      source: 'Recenzja leku na ból',
+      text: 'Oczekiwałem dobrej i skutecznej ulgi. Niestety po tygodniu pojawiły się wymioty i skurcze żołądka. Brak poprawy był niesamowicie frustrujący. Nie polecam tego leku — nigdy nie brać bez konsultacji z lekarzem.',
+      aiWords_unigram: ['dobrej', 'skutecznej', 'ulgi', 'niesamowicie', 'Oczekiwałem', 'polecam', 'poprawy', 'wymioty', 'skurcze', 'frustrujący'],
+      aiWords_bigram:  ['wymioty i', 'i skurcze', 'Brak poprawy', 'Nie polecam', 'nigdy nie brać', 'był niesamowicie', 'po tygodniu', 'skurcze żołądka', 'bez konsultacji', 'pojawiły się'],
       aiSentiment_unigram: 'positive',
       aiSentiment_bigram:  'negative',
       truthSentiment:      'negative'
     },
     {
-      id: 'opinia2',
-      name: 'Opinia 2',
-      source: 'Recenzja pokoju w hotelu',
-      text: 'Oczekiwałem idealnego, uroczego i niesamowitego hotelu. Chciałem doskonałego jedzenia i przestronnego pokoju. Jednak rzeczywistość nie była wspaniała. Pokój śmierdział, a obsługa była niesamowicie wolna.',
-      aiWords_unigram: ['nie', 'doskonałego', 'niesamowitego', 'idealnego', 'wspaniała', 'niesamowicie', 'uroczego', 'przestronnego', 'wolna', 'śmierdział'],
-      aiWords_bigram:  ['nie była', 'była wspaniała', 'a obsługa', 'Pokój śmierdział', 'była niesamowicie', 'obsługa była', 'uroczego i', 'jedzenia i', 'rzeczywistość nie', 'niesamowitego hotelu'],
-      aiSentiment_unigram: 'negative',
-      aiSentiment_bigram:  'positive',
-      truthSentiment:      'positive'
-    },
-    {
+      // TRUDNA (pozytywna) — unigram ✗ myli się (widzi negatywne słowa i klasyfikuje jako negative), bigram ✓ poprawny
+      // Słowa z tabeli: odstawiono, powinien, wtedy, w razie potrzeby, od tego czasu, pominięty, iść spać
       id: 'opinia3',
       name: 'Opinia 3',
-      source: 'Opinia o hotelu',
-      text: 'Przybyliśmy niesamowicie zmęczeni i bardzo zajęci pracą, oczekując niskiej jakości. Ale się myliliśmy! Lokalizacja była cicha i dogodna.',
-      aiWords_unigram: ['niskiej', 'zmęczeni', 'niesamowicie', 'dogodna', 'cicha', 'jakości', 'zajęci', 'oczekując', 'Lokalizacja', 'była'],
-      aiWords_bigram:  ['bardzo zajęci', 'i bardzo', 'się myliliśmy', 'Przybyliśmy niesamowicie', 'Lokalizacja była', 'i dogodna', 'zmęczeni i', 'niskiej jakości', 'cicha i', 'Ale się'],
+      source: 'Recenzja leku na sen',
+      text: 'Lek odstawiono po miesiącu, bo powinien być stosowany tylko w razie potrzeby. Wtedy byłem sceptyczny, ale od tego czasu śpię spokojnie bez tabletek. Dawkę pominięty jeden raz — i wtedy było gorzej. Teraz mogę normalnie iść spać bez lęku.',
+      aiWords_unigram: ['odstawiono', 'sceptyczny', 'gorzej', 'pominięty', 'lęku', 'tylko', 'bez', 'powinien', 'spokojnie', 'wtedy'],
+      aiWords_bigram:  ['od tego czasu', 'w razie potrzeby', 'iść spać', 'bez lęku', 'spokojnie bez', 'śpię spokojnie', 'Dawkę pominięty', 'było gorzej', 'lek odstawiono', 'normalnie iść'],
       aiSentiment_unigram: 'negative',
       aiSentiment_bigram:  'positive',
       truthSentiment:      'positive'
